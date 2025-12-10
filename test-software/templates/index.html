@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Weather Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #121212; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { text-align: center; color: #bb86fc; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: #1e1e1e; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        .full-width { grid-column: span 2; }
+        canvas { width: 100%; height: 250px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⛈️ Тестовая Панель Метеостанции</h1>
+    
+    <div class="grid">
+        <!-- График Температуры -->
+        <div class="card full-width">
+            <canvas id="tempChart"></canvas>
+        </div>
+        <!-- Графики Давления и UV -->
+        <div class="card">
+            <canvas id="pressChart"></canvas>
+        </div>
+        <div class="card">
+            <canvas id="uvChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Настройка графиков
+    Chart.defaults.color = '#888';
+    Chart.defaults.borderColor = '#333';
+
+    function makeChart(id, label, color) {
+        const ctx = document.getElementById(id).getContext('2d');
+        return new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ 
+                label: label, 
+                data: [], 
+                borderColor: color, 
+                backgroundColor: color + '22', // Прозрачная заливка
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3
+            }]},
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true } } }
+        });
+    }
+
+    const tempChart = makeChart('tempChart', 'Температура (°C)', '#ff7597');
+    const pressChart = makeChart('pressChart', 'Давление (мм рт. ст.)', '#4facfe');
+    const uvChart = makeChart('uvChart', 'UV Индекс', '#ffd200');
+
+    async function update() {
+        try {
+            const res = await fetch('/api/history');
+            const json = await res.json();
+
+            // Обновляем данные
+            tempChart.data.labels = json.labels;
+            tempChart.data.datasets[0].data = json.temp;
+            tempChart.update();
+
+            pressChart.data.labels = json.labels;
+            pressChart.data.datasets[0].data = json.pressure;
+            pressChart.update();
+
+            uvChart.data.labels = json.labels;
+            uvChart.data.datasets[0].data = json.uv;
+            uvChart.update();
+        } catch (e) { console.error("Ошибка загрузки данных:", e); }
+    }
+
+    // Обновляем раз в 2 секунды (чтобы ты быстро увидел результат теста)
+    setInterval(update, 2000);
+    update();
+</script>
+
+</body>
+</html>
+
